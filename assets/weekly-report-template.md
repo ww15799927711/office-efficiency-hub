@@ -1,0 +1,25 @@
+> **模板语言 / Template language**：本模板默认中文。当用户以英文（或其他语言）输入时，agent 应**把模板内容本地化为该语言**再输出，不强行用中文。
+> This template is Chinese by default. When the user writes in English (or another language), the agent should **localize the content to that language** before output — never force Chinese.
+> 占位符如 `[收件人]` `[事由]` 为通用结构，跨语言保持一致。/ Placeholders like `[收件人]` are structural and stay consistent across languages.
+
+# 周报模板
+
+**周期**：YYYY-MM-DD ~ YYYY-MM-DD
+**姓名**：
+**部门/角色**：
+
+## 一、本周完成（突出成果与产出，非流水账）
+1. [事项] — [产出/影响] — [进度]
+2. ...
+
+## 二、进行中 / 下周计划
+1. [事项] — [预计完成] — [阻塞点]
+2. ...
+
+## 三、风险与需协调
+- [风险] — [影响] — [需要的支持]
+
+## 四、数据/亮点（可选）
+- 关键指标本周变化
+
+> 用法：把素材（聊天记录、文档、提交记录、纪要）贴给 WorkBuddy，它会按此模板归纳并填充具体事项。日报可只保留一、二两部分。

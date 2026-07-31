@@ -1,0 +1,27 @@
+# Build / package artifacts
+*.skill
+dist/
+build/
+*.zip
+!office-efficiency-hub.zip
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Local secrets / env
+.env
+*.local
