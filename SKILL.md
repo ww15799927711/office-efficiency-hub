@@ -1,14 +1,7 @@
 ---
 name: office-efficiency-hub
-version: 1.1.0
-description: >-
-  办公效率枢纽 / Office Efficiency Hub — 办公事务性任务统一入口与调度中枢。Covers meeting
-  minutes & action items, daily/weekly reports, Excel/CSV data analysis & pivot & interactive
-  dashboards, OCR (image/PDF text extraction), Word/PPT/PDF generation, contract review
-  (procurement/legal/finance), email drafting, knowledge-base building, finance/ERP (Kingdee/U8)
-  reconciliation, invoice OCR & voucher drafts, and connectors for Feishu/DingTalk/WeCom/Tencent
-  Docs/WPS. Zero-dependency core; upgrades via optional connectors/skills. Bilingual (中文/English):
-  the agent replies in the user's language and localizes templates on demand.
+version: 1.0.6
+description: 办公效率枢纽：统一入口，识别办公任务后分流到内置工作流或可选增强能力。覆盖纪要、周报、邮件、数据分析、PPT、合同、发票、ERP、知识库、办公协同等 18 类场景；核心场景零依赖即可独立完成，未装插件/未授权连接器时自动降级，不卡死。
 agent_created: true
 ---
 
@@ -16,195 +9,273 @@ agent_created: true
 
 本技能是办公任务的**统一入口与调度中枢**：你先开口，我先识别任务类型，再决定走内置工作流、调用现有技能/连接器，还是降级处理。核心目标是**把每天被会议、邮件、报告、对账吞噬的约 3 小时事务性工作，交给 AI 处理，人只做判断和决策**。
 
-This skill is a **unified entry point and dispatch hub** for office tasks. You speak, I identify the task type, then decide whether to run a built-in workflow, call an existing skill/connector, or degrade gracefully. The goal: **hand the ~3 hours per day eaten by meetings, email, reports and reconciliation to AI, so humans only make judgments and decisions.**
+**重要说明**：本技能**核心场景零依赖即可独立完成**（纪要、周报、邮件、总结、客户跟进、数据分析、合同内置审查、发票、ERP 清洗等 14 类）。`meeting-recap-tmeet`、`pptx`、`docx`、`xlsx`、`pdf` 等 WorkBuddy 内置技能只是**可选增强**；OCR、专业合同审查、办公协同连接器未安装/未授权时自动降级为内置工作流或导出处理，**不卡死、不伪造接口**。
 
-**重要说明 / Important**: 本技能**不依赖任何外部插件或连接器也能独立完成基础工作**。WorkBuddy 内置技能（`meeting-recap-tmeet`、`pptx`、`docx`、`xlsx`、`pdf` 等）已覆盖大多数场景；OCR、合同审查等增强能力仅在有用户已装的相关技能时优先调用，未安装时自动退化为内置工作流或导出处理，不会卡死。
+**音频转写依赖提示**：会议录音转文字（§16）是唯一强依赖场景——需转写能力（腾讯会议 tmeet 连接器 / 已安装的语音转文字技能 / 本机 ASR 引擎）。若环境均无，按 §16 与 `assets/audio-asr-guide.md` 引导用户先转写再粘贴，或降级提示，不卡死、不伪造转写。
 
-This skill works **standalone with zero external plugins or connectors**. WorkBuddy's built-in skills cover most scenarios; OCR / contract-review enhancements are invoked only when the user has the relevant skill installed, otherwise it degrades to built-in workflows — never stalls.
+## 30 秒能力清单
 
-**语言策略 / Language policy**: 本技能双语（中文/English）。Agent **用用户所用的语言回复**；模板（assets/*.md）默认中文，但当用户用英文（或其他语言）输入时，agent 应**把模板内容本地化为该语言**再输出，不强行用中文。See `references/platforms-global.md` for international tool mapping (Zoom / Teams / Google Meet / Notion / Google Docs / Microsoft 365…).
+快速判断你的需求是否适合交给本技能：
 
----
+| 场景 | 能做什么 | 不能做什么 | 支持输入 | 典型输出 |
+|------|---------|-----------|---------|---------|
+| 会议纪要/待办提取 | 从录音稿/聊天记录/文档提取决策、行动项、风险 | 不替代人工主持；不保证口语 100% 准确 | 文字、录音稿、音频(.mp3/.wav/.m4a)、PDF、Word、图片 | 结构化纪要 + 行动项表 |
+| 周报/日报/报告 | 按模板生成周期报告，可自动收集进度 | 不替代业务判断；需你提供关键数据 | 文字、文件、多份纪要 | Markdown/Word/Excel 报告 |
+| 邮件/消息草拟 | 草拟、润色、回复商务邮件与消息 | 不替你发送 | 文字、简短提示 | 邮件正文 + 主题建议 |
+| 数据分析/透视 | 自然语言驱动数据清洗、透视、统计、可视化、交互看板 | 不联网取数；不做预测建模 | Excel/CSV、自然语言描述 | 透视表 + 图表 + 交互看板/分析报告 |
+| 表格/数据处理 | 清洗、合并、格式化、简单计算 | 不处理复杂数据库操作 | Excel/CSV、文字指令 | 清洗后的 Excel/CSV |
+| 文档/纪要转 PPT | 根据内容生成 PPT 大纲并产出 .pptx | 不自动配图；复杂动画需人工调整 | 文字、Word、PDF、纪要 | PPT 大纲 + .pptx 文件 |
+| 合同审查 | 通用条款、采购/法务/财务视角风险识别 | 不替代执业律师；不做正式法律意见 | 合同文本（Word/PDF/文字） | 风险清单 + 修改建议 |
+| 发票 OCR 入账 | 识别发票字段、生成入账凭证草稿、校验异常 | 不直连税务系统；不自动入账 | 图片、PDF、文字 | 结构化发票 + 凭证草稿 |
+| 客户/项目跟进 | 生成客户状态卡、跟进话术、风险提示 | 不自动同步 CRM | 文字、客户名、项目信息 | 跟进卡片 + 邮件草稿 |
+| 财务/ERP（金蝶·用友等） | 清洗导出数据、生成凭证草稿、对账、报表 | 不直连 ERP 数据库；不入账 | Excel/CSV 导出文件 | 凭证草稿 + 对账表 + 异常清单 |
+| 可接入办公软件 | 通过连接器拉取飞书/钉钉/企微/腾讯文档/金山文档内容 | 未授权时只能处理导出文件 | 连接器授权或导出文件 | 清洗后的内容/报告 |
+| 晨间作战简报 | 汇总日程、行动项、客户进度，生成今日重点 | 不自动读取日历隐私；需授权 | 文字、授权连接器、多份文档 | 一页纸简报 |
+| 会议录音转文字 | 把会议录音(.mp3/.wav/.m4a)转写为文字，再整理成纪要/行动项 | **不自带 ASR**；需转写依赖（tmeet/语音技能/本机ASR），无则引导先转写或降级 | 音频文件、或已转写文字稿 | 转写稿 + 结构化纪要 + 行动项 |
 
-## 30 秒能力清单 / 30-Second Capability Snapshot
+完整 18 场景边界与免责声明见 `references/capability-list.md`。
 
-| 场景 / Scenario | 能做什么 / Can do | 不能做什么 / Cannot | 支持输入 / Inputs | 典型输出 / Output |
-|---|---|---|---|---|
-| 会议纪要/待办提取 / Minutes & action items | 从录音稿/聊天记录提取决策、行动项、风险 | 不替代主持；不保证口语100%准确 | 文字、录音稿、PDF、Word、图片 | 结构化纪要 + 行动项表 |
-| 周报/日报/报告 / Reports | 按模板生成周期报告，可收集进度 | 不替代业务判断 | 文字、文件、多份纪要 | Markdown/Word/Excel 报告 |
-| 邮件/消息草拟 / Email & messages | 草拟、润色、回复商务邮件与消息 | 不替你发送 | 文字、简短提示 | 邮件正文 + 主题建议 |
-| 数据分析/透视 / Data analysis & pivot | NL-driven 清洗、透视、统计、可视化、交互看板 | 不联网取数；不做预测建模 | Excel/CSV、自然语言 | 透视表 + 图表 + 看板 |
-| 表格/数据处理 / Spreadsheets | 清洗、合并、格式化、简单计算 | 不处理复杂数据库 | Excel/CSV、指令 | 清洗后文件 |
-| 文档/纪要转 PPT / To PPT | 生成大纲并产出 .pptx | 不自动配图 | 文字、Word、PDF、纪要 | PPT 大纲 + .pptx |
-| 合同审查 / Contract review | 通用+采购/法务/财务视角风险识别 | 不替代律师；不做正式法律意见 | 合同文本 | 风险清单 + 修改建议 |
-| 发票 OCR 入账 / Invoice OCR | 识别字段、生成凭证草稿、校验异常 | 不直连税务；不自动入账 | 图片、PDF、文字 | 结构化发票 + 凭证草稿 |
-| 客户/项目跟进 / CRM follow-up | 状态卡、跟进话术、风险提示 | 不自动同步 CRM | 文字、客户名、项目 | 跟进卡片 + 邮件草稿 |
-| 财务/ERP / Finance & ERP | 清洗导出数据、凭证、对账、报表 | 不直连 ERP；不入账 | Excel/CSV 导出 | 凭证草稿 + 对账表 |
-| 可接入办公软件 / Connected apps | 拉取飞书/钉钉/企微/腾讯文档/WPS 等 | 未授权时只处理导出文件 | 连接器或导出文件 | 清洗后内容/报告 |
-| 晨间作战简报 / Morning briefing | 汇总日程、行动项、客户进度 | 不自动读日历隐私（需授权） | 文字、连接器、文档 | 一页纸简报 |
+## 何时启用
+用户说出或写出任何"办公事务性工作"诉求即触发，典型信号：
+- 会议纪要、整理会议、提取待办、行动项、会议录音、mp3、wav、m4a、录音转文字、语音转写
+- 图片、PDF、扫描件、提取文字、OCR、识别文字
+- 写周报、日报、月报、工作总结、方案、复盘、从会议纪要/行动项自动收集进度
+- 处理 Excel、表格、数据清洗、透视表、图表
+- 做数据透视、统计分析、分组对比、图表可视化、数据看板、分析一下数据、哪些最赚钱
+- 把文档/Word/方案转成 PPT、一键生成幻灯片、汇报 slides、会议纪要转 PPT
+- 合同审查、合同风险、条款分析、采购合同、法务审核
+- 发票、报销、发票识别、发票入账、凭证草稿
+- 草拟/润色邮件、消息、回复、对外沟通
+- 总结文档、长文提炼、要点提取
+- 把零散资料/聊天/文档整理成知识库
+- 客户/项目跟进、客户关系、项目状态
+- 培训/学习笔记整理、课程讲义、视频字幕
+- 行动项追踪、待办汇总、跨会议跟进、时间冲突
+- 帮我规划今天/本周、帮我安排日程、日程协调、战略静默、劳逸结合、休息关怀
+- 金蝶、用友、ERP、财务软件、凭证录入、科目对账、财务报表
+- 飞书、钉钉、企业微信、腾讯文档、金山文档、拉取、同步、接入协同
 
-完整 17 场景边界与免责声明见 `references/capability-list.md` (also available bilingual).
+## 常见用法示例
 
----
-
-## 何时启用 / When to Activate
-
-用户说出或写出任何"办公事务性工作"诉求即触发。典型信号 / Trigger phrases (bilingual):
-
-**中文**: 会议纪要、整理会议、提取待办、行动项、图片/PDF/OCR/识别文字、写周报/日报/月报/复盘、处理 Excel/透视表/图表、数据透视/可视化/看板、文档转 PPT、合同审查/风险、发票/报销/入账、草拟/润色邮件、总结文档、整理知识库、客户/项目跟进、培训笔记、时间冲突、帮我安排今天、金蝶/用友/ERP、飞书/钉钉/企微/腾讯文档。
-
-**English**: meeting minutes, extract action items, OCR / extract text from image or PDF, write a weekly/daily report, clean Excel / pivot table / chart, data analysis / dashboard, turn doc into slides / PPT, review contract / risk, invoice / reimbursement / bookkeeping, draft or polish an email, summarize a document, build a knowledge base, customer/project follow-up, training notes, schedule conflict, plan my day, ERP / Kingdee / U8 reconciliation, Feishu/DingTalk/WeCom/Zoom/Teams/Notion/Google Docs.
-
----
-
-## 常见用法示例 / Common Usage Examples
+直接复制下面的话术即可开始：
 
 - "整理这份会议纪要，提取行动项，再草拟一封跟进邮件"
-  → "Summarize these minutes, extract action items, then draft a follow-up email."
 - "把这份周报数据做成 Excel 透视表，按地区看销售额"
-  → "Turn this weekly-report data into an Excel pivot table by region sales."
-- "审查这份采购合同，标出法律和财务风险"
-  → "Review this procurement contract; flag legal and financial risks."
+- "审查这份采购合同，标出法律风险和财务风险"
 - "识别这张发票，生成入账凭证草稿"
-  → "OCR this invoice and draft a booking voucher."
-- "安排我今天的工作，检查时间冲突，给战略静默建议"
-  → "Plan my day, check for schedule conflicts, suggest focus blocks."
+- "安排我今天的工作，检查时间冲突，并给出战略静默建议"
+- "把这份客户聊天记录整理成知识库"
+- "把这段会议录音转成文字，再整理成纪要和行动项"（支持直接上传 .mp3/.wav/.m4a）
 
-也支持一次串多个场景（chaining is supported），如「会议纪要 + 行动项 + 邮件 + 周报」。
+也支持一次串多个场景，比如"会议纪要 + 行动项 + 邮件 + 周报"。
 
----
+## 完整示例（照着输入即可）
 
-## 完整示例（照着输入即可）/ Full Examples
+### 示例 1：会议纪要 → 行动项 → 跟进邮件
 
-### 示例 1：会议纪要 → 行动项 → 跟进邮件 / Minutes → Actions → Email
+**输入**：直接粘贴会议录音稿，并说：
 
-**输入 / Input**: 粘贴录音稿并说 "整理这份会议纪要，提取行动项，并草拟一封给李四的跟进邮件。"
+```
+整理这份会议纪要，提取行动项，并草拟一封给李四的跟进邮件。
 
-**输出 / Output**:
+2026-07-20 产品周会录音稿
+张三：下周要上线新功能，开发必须在周五前完成自测。
+李四：市场部周三前要给推广文案，不然赶不上预热。
+王五：客户 A 的售后问题还没闭环，最晚后天给人家回复。
+```
+
+**输出**：
+
 1. 结构化纪要：决策点、风险点。
-2. 行动项表 / Action-item table:
+2. 行动项表：
 
-| 任务 / Task | 负责人 / Owner | 截止 / Due | 状态 |
-|---|---|---|---|
+| 任务 | 负责人 | 截止时间 | 状态 |
+|------|--------|----------|------|
 | 新功能开发自测完成 | 开发 | 周五前 | 待完成 |
 | 提供推广文案 | 市场部/李四 | 周三前 | 待完成 |
+| 客户 A 售后闭环 | 王五 | 后天 | 待完成 |
 
-3. 给李四的跟进邮件草稿（主题 + 正文）/ follow-up email草案.
+3. 给李四的跟进邮件草稿（主题 + 正文）。
 
-### 示例 2：Excel 销售数据分析 / Sales Data Analysis
+### 示例 2：Excel 销售数据分析
 
-**输入**: 上传 `superstore-sales.xlsx`，说 "分析下销售数据，按地区看趋势，找出哪些子品类最赚钱。"
+**输入**：上传 `superstore-sales.xlsx`，并说：
 
-**输出**: 数据体检 → 地区×品类透视(Top3) → 帕累托(9/17 子类目贡献80%利润) → 月度趋势图 → 结论建议。
+```
+分析下销售数据，按地区看趋势，找出哪些子品类最赚钱。
+```
 
-### 示例 3：采购合同审查 / Contract Review
+**输出**：
 
-**输入**: 上传合同 PDF，"审查这份采购合同，从采购、法务、财务三角度列风险并给修改建议。"
+1. 数据体检报告：行数、缺失值、重复值、时间跨度。
+2. 地区 × 品类 透视表（Top 3）。
+3. 子品类帕累托分析：9/17 子品类贡献 80% 利润。
+4. 月度销售趋势图。
+5. 结论与建议：重点维护 West 区 Phones/Copiers；Central 区需提升利润率。
 
-**输出**: 合同摘要 → 采购/法务/财务三视角风险 → 修改建议（附免责声明：以执业律师/法务复核为准）。
+### 示例 3：采购合同审查
 
-更多示例 / More: `references/examples.md`.
+**输入**：上传合同 PDF，并说：
 
----
+```
+审查这份采购合同，从采购、法务、财务三个角度列出风险，并给出修改建议。
+```
 
-## 支持输入类型 / Supported Inputs
+**输出**：
 
-- **直接对话 / Chat**: 粘贴文字、纪要稿、聊天记录。
-- **上传文件 / Files**: Excel、Word、PDF、图片（OCR）、PPT 源文件。
-- **连接器 / Connectors**: 已授权时从 腾讯会议/飞书/钉钉/企微/腾讯文档/WPS 拉取；国际工具见 `references/platforms-global.md`。
-- **混合 / Mixed**: 文字 + 文件 + 链接。
+1. 合同基本信息：标的、金额、付款条款、交付周期。
+2. 采购视角：交付违约、验收标准、供应商资质。
+3. 法务视角：知识产权归属、保密义务、争议管辖。
+4. 财务视角：付款节点、发票类型、税务合规、预算控制。
+5. 风险清单与修改建议（附免责声明：最终以执业律师/法务复核为准）。
 
-未安装或未授权连接器时，自动降级为"导出文件处理"或"对话处理"，不卡死。
+### 示例 4：发票 OCR 生成凭证
 
----
+**输入**：上传发票图片，并说：
 
-## 授权与依赖透明（消除"套娃感"）/ Authorization & Dependency Transparency
+```
+识别这张发票，生成入账凭证草稿，并标出异常。
+```
 
-本技能把"你需要额外装什么、授权什么"一次讲清 / We declare every dependency up front:
+**输出**：
 
-- **零依赖免费项（开箱即用）/ Zero-dependency (out of the box）**: 纪要/待办、周报/邮件/总结/跟进/笔记/行动项/知识库/数据分析(xlsx 静态表)/合同内置审查/发票内置 OCR/财务 ERP 清洗对账。
-- **需连接器授权 / Needs connector auth**: 飞书/钉钉/企微/腾讯文档/WPS 拉取同步、腾讯会议 tmeet。未授权自动降级，不伪造接口。
-- **需已装专用技能（可选增强）/ Optional skills**: OCR→`pdf-image-text-extractor`、合同→`audit-new`、PPT→`pptx`、Word→`docx`、PDF→`pdf`、表格→`xlsx`。
-- **不会做的事 / Won't do**: 不自动发邮件、不直连金蝶/用友入账、不替你签字审批、不擅自联网、不默认脱敏内部数据（见下）。
+1. 结构化发票字段：发票代码、号码、开票日期、金额、税号、商品名称。
+2. 凭证草稿：借/贷科目、金额、摘要。
+3. 异常提示：如抬头不一致、税率异常、重复报销风险。
 
-For international equivalents (Zoom/Teams/Meet/Slack/Notion/Google Workspace/Office365), see `references/platforms-global.md`.
+### 示例 5：会议录音 → 文字 → 纪要 → 行动项
 
----
+**输入**：上传 `产品周会.mp3`（约 20 分钟），并说：
 
-## 事实纪律与可信度（强制）/ Fact Discipline & Trust (Mandatory)
+```
+把这段会议录音转成文字，提取行动项，并检查时间冲突。
+```
 
-这是本技能的**最高优先级约束** / highest-priority constraint: 当效率、美观、用户期待与事实冲突时，以事实为准。全 17 场景强制遵循 `references/fact_discipline.md`（bilingual）。
+**输出**（当环境具备转写依赖时）：
+1. 转写稿（含说话人分段，若引擎支持）。
+2. 结构化纪要：决策点、风险点。
+3. 行动项表（负责人 + 截止时间 + 验收标准）。
+4. 时间冲突提示（若多个行动项截止日重叠）。
 
-- **信息分级 / Confidence tiers**: 已确认 / 推断 / 待确认 / 不可推断，逐条标置信度。
-- **来源标注 / Source tags**: 数据、结论、待办都标 `[来源: ...]`，缺失标 `[待确认]`，不编造。
-- **禁止臆造 / No fabrication**: 不杜撰数字、竞品、法条、人名、条款、金额。
-- **不认错自检 / Admit mistakes**: 产出前自检、不确定明说、被纠正立即改、错误公开标【已修正】，绝不用话术掩盖（直击"AI 死鸭子嘴硬"槽点）。
+**输出**（当环境无转写依赖时）：
+> 检测到音频文件，但当前无可用转写能力。请任选：① 用任意工具转成文字稿发我，我直接整理；② 开会用腾讯会议 → 去连接器页信任「腾讯会议」自动转写；③ 装一个语音转文字 skill 后告诉我；④ 数据留本地 → 本机自托管 faster-whisper（我可给指引）。或先把转写好的文字粘贴给我。
+> 详见 `assets/audio-asr-guide.md`。
 
-详见 / See `references/fact_discipline.md`.
+更多示例见 `references/examples.md`。
 
----
+## 支持输入类型
 
-## 隐私与脱敏（询问式，不强制）/ Privacy & Desensitization (Ask-first, never forced)
+你可以用以下任意方式输入：
 
-检测到身份证号/税号/银行账号等敏感字段时，**先问你要不要脱敏，绝不默认遮盖** / when sensitive fields (ID / tax-no / bank account) appear, we ASK before masking — never mask by default. 因为财务入账、内部报销、内部对账这类**对内**场景，本来就要保留原文才能用。三选项 / three options: 保留原文(对内) / 部分掩码 / 完全脱敏(对外). 详见 / See `references/privacy_desensitization.md`.
+- **直接对话**：粘贴文字、会议纪要稿、聊天记录。
+- **上传文件**：Excel、Word、PDF、图片（OCR 场景）、PPT 源文件、音频（.mp3/.wav/.m4a，会议录音转写场景）。
+- **连接器**：已授权时可直接从腾讯会议、飞书、钉钉、企微、腾讯文档、金山文档拉取内容。
+- **混合输入**：文字 + 文件 + 链接组合。
 
----
+未安装或未授权连接器时，本技能会自动降级为"导出文件处理"或"对话处理"，不卡死。
 
-## 工作流：识别 → 分流 / Workflow: Identify → Dispatch
+## 授权与依赖透明（消除"套娃感"）
 
-第一步 / Step 1: 判断输入场景，参照 `references/dispatch.md`（bilingual scenario table）。
+本技能把"你需要额外装什么、授权什么"一次讲清，避免你以为被偷偷套了别的技能：
 
-第二步 / Step 2: 按表分流。所有场景都有**内置工作流保底**；已装 `meeting-recap-tmeet`、`pptx`、`docx`、`xlsx`、`pdf` 或已授权连接器时优先调用；未装/未授权时自动降级，**不阻塞、不报错、不伪造接口**。
+- **零依赖免费项（开箱即用）**：纪要/待办提取、周报/邮件/文档总结/客户跟进/培训笔记/行动项/知识库/数据分析（xlsx 静态表）/合同内置审查/发票内置 OCR/财务 ERP 清洗对账——纯文本与本地文件处理，无需任何连接器或额外技能。
+- **需连接器授权（你手动在连接器页"信任"启用）**：飞书/钉钉/企微/腾讯文档/金山文档拉取同步、腾讯会议 tmeet 直连。未授权时自动降级导出处理，不伪造接口。
+- **需已装专用技能（可选增强，未装自动退化）**：OCR 走 `pdf-image-text-extractor`、专业合同审查走 `audit-new`、PPT 走 `pptx`、Word 走 `docx`、PDF 走 `pdf`、表格走 `xlsx`——这些都是 WorkBuddy 内置或市场技能，本技能只做调度，不重复实现。
+- **需转写依赖（仅会议录音转文字场景）**：音频 → 文字须由转写能力完成。优先级：① 腾讯会议 tmeet 连接器（云录制自带转写）；② 已安装的语音转文字技能；③ 本机 ASR 引擎（如 faster-whisper，数据留本地）。三者皆无时按 `assets/audio-asr-guide.md` 引导用户先转写再粘贴，或降级提示，本技能不自带 ASR、不伪造转写。
+- **不会做的事**：不自动发邮件、不直连金蝶/用友入账、不替你签字审批、不擅自联网抓取、不默认脱敏你的内部数据（见下节）。
 
-| 场景 / Scenario | 识别信号 / Signal | 执行 / Action |
-|---|---|---|
-| 会议纪要（腾讯会议） / Minutes (Tencent) | 腾讯会议号、tmeet | `meeting-recap-tmeet` |
-| 纪要/待办（任意来源） / Minutes (any) | 录音稿、聊天、文档 | 内置 §1 |
-| 周报/报告 / Reports | 周报、复盘、方案 | 内置 + `weekly-report-template.md` |
-| 表格/数据 / Spreadsheet | Excel、透视、图表 | `xlsx` |
-| 数据分析/看板 / Analysis & dashboard | "分析下销售"、看板 | `xlsx` (§12) |
-| PPT / Slides | PPT、slides、文档转PPT | `pptx` |
-| Word / 文档 | docx、公文、合同 | `docx` |
-| PDF | 合并、拆分、水印 | `pdf` |
-| OCR | 图片、PDF、识别文字 | `pdf-image-text-extractor` 或 `pdf` (§13) |
-| 邮件 / Email | 邮件、润色、对外沟通 | 内置 §3 + `email-draft-template.md` |
-| 文档总结 / Summarize | 总结、提炼、要点 | 内置 §2 |
-| 合同审查 / Contract | 合同、风险、采购合同 | `audit-new` 或 内置 §14 |
-| 晨间简报 / Morning | 今日重点、日程、冲突 | 内置 §4 |
-| 知识库 / KB | 整理、归档、沉淀 | 内置 §5 |
-| 客户跟进 / CRM | 客户、项目、状态 | 内置 §7 |
-| 培训笔记 / Notes | 课程、字幕、学习 | 内置 §8 |
-| 行动项 / Actions | 多纪要、待办汇总 | 内置 §9 → `xlsx` |
-| 财务/ERP / Finance | 金蝶、用友、对账 | 内置 §10 |
-| 发票 OCR / Invoice | 发票、报销、税号 | §13→§15 |
-| 接入办公软件 / Connected | 飞书、钉钉、企微、腾讯文档 | §11（连接器优先，未连降级） |
+## 事实纪律与可信度（强制）
 
-第三步 / Step 3: 交付后主动询问是否沉淀进知识库（§5），形成"输入 → 产出 → 沉淀"闭环。
+这是本技能的**最高优先级约束**：当效率、美观、用户期待与事实冲突时，以事实为准。全部 18 个场景强制遵循 `references/fact_discipline.md`，核心要求：
 
----
+- **信息分级**：已确认事实 / 推断 / 待确认 / 不可推断，逐条标置信度。
+- **来源标注**：数据、结论、待办都标 `[来源: ...]`，缺失标 `[待确认]`，不编造。
+- **禁止臆造**：不杜撰数字、竞品、法条、人名、条款、金额；不把推测当事实。
+- **不认错自检**：产出前自检、不确定明说、被纠正立即改、错误公开标【已修正】，绝不用话术掩盖错误（直击"AI 死鸭子嘴硬"槽点）。
 
-## 统一原则 / Unified Principles
+详见 `references/fact_discipline.md`。
 
-- **事实纪律优先 / Fact-first**: 全场景强制 `references/fact_discipline.md`。事实错误零容忍。
-- **80/20 法则**: 优先自动化高频低价值任务。
-- **先标准化再自动化**: 理清结构、统一口径再生成。
-- **可复用优先 / Reuse**: 模板走 `assets/`；专用技能/连接器优先调，不重写。
-- **接入优先、导出兜底 / Connect-then-export**: 有开放 API 的平台优先连接器直拉；闭源 ERP 只处理导出文件。
-- **按用户语言回复 / Reply in user's language**: 中文用户输入用中文，English input → English output；模板内容本地化为用户语言。
-- **移动端短读优先 / Mobile-friendly**: 结论前置、要点化、表格优先、单段 ≤5 行；中文排版细节到位。
-- **可视化看板可选 / Optional dashboards**: 数据分析/周报/行动项可按需生成 ECharts HTML 或 SVG 看板，无依赖回退 xlsx 静态图。
-- **休息关怀 / Rest care**: 主动识别高密度会议堆叠，建议 ≥90 分钟专注块与合理休息，不鼓励"无限工作日"。
-- **版本管理 / Versioning**: 当前 v1.1.0（开源双语版 / open-source bilingual）。1.1.0 关键变更：①全文**中英双语**化，agent 按用户语言回复并本地化模板；②新增**国际平台映射** `references/platforms-global.md`（Zoom/Teams/Meet/Notion/Google Docs/Office365 等）；③保留 v1.0.4 全部可信度能力（询问式脱敏、交互看板、授权透明、知识库落地、专业度标注）。
+## 隐私与脱敏（询问式，不强制）
 
----
+检测到身份证号/税号/银行账号等敏感字段时，**先问你要不要脱敏，绝不默认遮盖**——因为财务入账、内部报销、内部对账这类**对内**场景，本来就要保留原文才能用（对应 2026 年用户对"AI 偷偷把内部数据外发/脱敏"的信任焦虑）。三选项：保留原文（对内）/ 部分掩码 / 完全脱敏（对外分享）。详见 `references/privacy_desensitization.md`。
 
-## 资源 / Resources
+## 工作流：识别 → 分流
 
-- `references/fact_discipline.md`：事实纪律与可信度强制规范（双语 / bilingual）。
-- `references/privacy_desensitization.md`：询问式脱敏规范（双语 / bilingual）。
-- `references/platforms-global.md`：国际办公平台映射（Zoom/Teams/Meet/Notion/Google/Office365）— 全球化优化核心。
-- `references/dispatch.md`：场景分流决策表 + 各场景工作流（双语标题与触发词 / bilingual）。
-- `references/capability-list.md`：17 场景能力边界清单（双语 / bilingual）。
-- `references/examples.md`：典型场景完整输入/输出示例。
-- `references/best-practices.md`：最佳实践 + 避坑指南（工程稳定性）。
-- `assets/*.md`：13 个结构化模板（中文；agent 按用户语言本地化输出）。
+第一步，判断输入属于哪一类场景，参照 `references/dispatch.md` 的"场景分流决策表"。
+
+第二步，按下表分流执行。**所有场景都有内置工作流保底**，外部技能/连接器只是可选增强。若用户已安装 `meeting-recap-tmeet`、`pptx`、`docx`、`xlsx`、`pdf` 等 WorkBuddy 内置技能或已授权连接器，则优先调用以提升体验；未安装/未授权时自动降级为内置工作流或导出处理，**不阻塞、不报错、不伪造接口**。
+
+| 场景 | 识别信号 | 执行方式 |
+|------|---------|---------|
+| 会议纪要（腾讯会议来源） | 腾讯会议号、tmeet、会议录制 | 如已安装 `meeting-recap-tmeet` 则调用，否则按通用纪要（§1）处理 |
+| 纪要/待办提取（任意来源） | 录音稿、聊天记录、文档、文字稿 | 内置工作流（见 dispatch.md §1） |
+| 周报/日报/报告 | 周报、日报、复盘、汇报、方案 | 内置工作流 + `assets/weekly-report-template.md` |
+| 表格/数据处理 | Excel、表格、数据、透视、图表 | 调用 `xlsx` 技能 |
+| 数据分析/透视/可视化（自然语言驱动） | 透视表、统计分析、分组对比、数据看板、趋势、"分析下销售""哪些最赚钱" | 调用 `xlsx` 技能（见 dispatch.md §12，支持 NL 意图识别） |
+| 演示文稿/PPT | PPT、汇报材料、slides、文档转PPT、一键生成幻灯片 | 调用 `pptx` 技能 |
+| 文档/纪要转 PPT（通用） | Word、方案、报告、长文转PPT、会议转PPT | 内置工作流 → 调 pptx（见 dispatch.md §6） |
+| Word 文档 | docx、红头、公文、合同 | 调用 `docx` 技能 |
+| PDF 处理 | PDF 合并、拆分、提取、加水印 | 调用 `pdf` 技能 |
+| PDF/图片文字提取（OCR） | 图片、PDF、扫描件、提取文字、OCR、识别文字 | 可选调用已安装的 `pdf-image-text-extractor` 类 OCR 技能；未安装时走内置 `pdf` 工作流兜底（见 dispatch.md §13） |
+| 邮件/消息草拟 | 邮件、回复、润色、对外沟通 | 内置工作流 + `assets/email-draft-template.md` |
+| 文档总结/长文提炼 | 总结、提炼、要点、思维导图 | 内置工作流（见 dispatch.md §2） |
+| 合同审查（采购/法务/财务） | 合同、审查、条款、风险、采购合同、法务审核、合同对比 | 可选调用已安装的 `audit-new` 类合同审查技能；未安装时走内置工作流（见 dispatch.md §14） |
+| 晨间作战简报 | 每日简报、开工前汇总、今日重点、帮我安排今天、日程规划、时间冲突、战略静默 | 内置工作流 + `assets/morning-brief-template.md` |
+| 知识库沉淀 | 整理资料、建知识库、归档、沉淀 | 内置工作流（见 dispatch.md §5） |
+| 会议纪要转 PPT | 纪要/素材转 PPT、汇报 slides、从会议到汇报 | 内置工作流 → 调 pptx（见 dispatch.md §6） |
+| 客户/项目跟进 | 客户名、项目名、跟进、状态、关系维护 | 内置工作流 + `assets/customer-followup-template.md` |
+| 培训/学习笔记 | 课程、讲义、视频字幕、学习资料、培训总结 | 内置工作流 + `assets/learning-notes-template.md` |
+| 行动项追踪 | 多个纪要、待办汇总、跟进行动项、跨会议追踪、时间冲突 | 内置工作流 → 调 xlsx（见 dispatch.md §9） |
+| 财务/ERP（金蝶·用友等） | 金蝶、用友、ERP、凭证、对账、报表、导出 | 内置工作流 + `assets/finance-erp-template.md`（见 dispatch.md §10） |
+| 发票 OCR 入账 | 发票、报销、发票识别、发票入账、凭证草稿、税号 | 内置工作流（§13 OCR → §15，见 dispatch.md §15）+ `assets/invoice-ocr-template.md` |
+| 可接入办公软件（飞书/钉钉/企微/腾讯文档等） | 飞书、钉钉、企业微信、腾讯文档、拉取、同步、接入 | 内置工作流（见 dispatch.md §11，优先调对应连接器，未连接降级导出） |
+| 会议录音转文字（音频 → 文字 → 纪要） | 会议录音、mp3、wav、m4a、录音转文字、语音转写、音频转纪要 | 音频转写预处理：优先 tmeet / 已装语音技能 / 本机 ASR；无依赖则引导用户先转写或降级（见 dispatch.md §16 + assets/audio-asr-guide.md） |
+
+第三步，交付后主动询问用户是否要把产物沉淀进知识库（dispatch.md §5），形成"输入 → 产出 → 沉淀"闭环。
+
+## 统一原则
+- **事实纪律优先**：所有场景强制遵循 `references/fact_discipline.md`（详见上方「事实纪律与可信度」小节）。事实错误零容忍——不臆造、不确定明说、被纠正立即改。
+- **80/20 法则**：优先自动化那 20% 产出 80% 效果的高频低价值任务，而非全盘自动化。
+- **先标准化再自动化**：烂流程上套工具只会加速混乱。先理清结构、统一口径，再生成。
+- **可复用优先**：凡能套模板的，用 `assets/` 模板；凡有专用技能/连接器的，调技能或连接器而非重写。
+- **接入优先、导出兜底**：协作类软件（飞书/钉钉/企微/腾讯文档等）有开放 API/CLI/MCP，优先调 WorkBuddy 内置连接器直接拉取；ERP 类（金蝶/用友）闭源无 API，只处理导出文件。未授权连接器时统一降级为导出处理，不伪造接口。
+- **中文输出**：默认简体中文；涉及中国股市等场景遵循红涨绿跌。
+- **移动端短读优先**：结论前置、要点化、表格优先、单段 ≤5 行；全角标点、数字千分位、对齐等中文排版细节到位，方便手机上一眼读完。
+- **可视化看板可选**：数据分析/周报/行动项场景，按需生成自包含 ECharts HTML 看板或 SVG 信息图（见 `assets/data-analysis-template.md` 五-B），无依赖时回退 xlsx 静态图。
+- **反无限工作日与休息关怀**：在晨间简报、行动项追踪等场景中主动识别高密度会议/任务堆叠，建议留出 ≥90 分钟专注块和合理休息，不鼓励牺牲休息的"无限工作日"。
+- **版本管理**：当前发布版本 1.0.6（SkillHub 持续优化版）。1.0.6 关键变更：针对 TRACE 评测反馈补齐**常见问题 FAQ**（`references/faq.md`），统一各场景**异常处理话术**与**零依赖路径**，精简 frontmatter description 避免市场页截断，进一步强化"核心场景零依赖、外部技能只是可选增强"的定位。1.0.5 关键变更：新增**第 18 场景「会议录音转文字」**——把"会议音频 → 文字 → 会议纪要/行动项"闭环补齐；明确本技能不自带 ASR，设四级降级引导（粘贴文字稿 / 信任腾讯会议 tmeet 连接器 / 安装语音转文字 skill / 本机自托管 faster-whisper 实测指引），无转写依赖时不会卡死也不伪造转写；新增 `assets/audio-asr-guide.md` 引导模板。1.0.4 关键变更：①新增**询问式脱敏规范** `references/privacy_desensitization.md`——检测到敏感字段先问用户、不强制遮盖，对内场景（入账/报销/对账）保留原文，对外/共享再脱敏，化解 AI 误脱敏内部数据焦虑；②新增**交互看板可选增强**（ECharts HTML / SVG 信息图，见 `assets/data-analysis-template.md` 五-B），xlsx 静态图兜底；③新增**授权与依赖透明**小节，一次讲清零依赖项/需授权连接器/需已装技能，消除"套娃感"；④**知识库真正落地**（用户同意后导出 Markdown 文件并去重）而非仅口头询问；⑤每场景标注**专业度与最佳搭档**管理"样样松"预期；⑥补充**移动端短读**原则。1.0.3 已新增统一事实纪律规范 `references/fact_discipline.md`；1.0.2 已内化能力边界清单与完整示例并强化"无插件也能独立运行"。后续迭代遵循语义化版本：新增场景升 minor、修复/微调升 patch，保持与 SkillHub 市场页一致。
+
+## 常见问题速查（FAQ）
+
+遇到"没装插件/连接器未授权/输出不满意/不知道怎么开口"等卡住情况，先看 `references/faq.md`。里面按场景整理了 15+ 个高频问题，每个都给出**可直接执行**的下一步，不让你自己摸索。
+
+快速入口：
+- [FAQ-01] 我没装任何专用技能，这个 skill 还能用吗？
+- [FAQ-02] 连接器未授权怎么办？
+- [FAQ-03] 输出结果不满意，怎么让它改？
+- [FAQ-04] 上传的文件格式不支持怎么办？
+- [FAQ-05] 它和单一办公 skill（如 xlsx/pptx/docx）有什么区别？
+
+详见 `references/faq.md`。
+
+## 资源
+- `references/fact_discipline.md`：事实纪律与可信度强制规范（信息分级、来源标注、各场景纪律、禁止臆造、不认错自检）。
+- `references/privacy_desensitization.md`：询问式脱敏规范（检测敏感字段先问用户、三选项、对内保留原文 / 对外脱敏，不默认遮盖）。
+- `references/dispatch.md`：场景分流决策表 + 各场景详细工作流 §1 纪要提取 / §2 文档总结 / §3 邮件 / §4 晨报 / §5 知识库 / §6 转 PPT / §7 客户跟进 / §8 培训笔记 / §9 行动项 / §10 财务 ERP / §11 可接入办公软件 / §12 数据分析透视 / §13 OCR 预处理 / §14 合同审查 / §15 发票 OCR 入账 / §16 会议录音转文字（音频转写 → 纪要）/ §17 周报日报（周期报告）/ §18 表格处理（清洗合并）。共 **18 条独立工作流**，与 `references/capability-list.md` 的 **18 个能力场景**一一对应。
+- `assets/weekly-report-template.md`：周报/日报结构化模板。
+- `assets/email-draft-template.md`：邮件/消息草拟结构模板。
+- `assets/morning-brief-template.md`：晨间作战简报一页纸模板。
+- `assets/pptx-outline-template.md`：会议纪要到 PPT 大纲模板。
+- `assets/customer-followup-template.md`：客户/项目跟进卡片模板。
+- `assets/learning-notes-template.md`：培训/学习笔记结构化模板。
+- `assets/action-tracker-template.md`：跨会议行动项追踪表模板。
+- `assets/finance-erp-template.md`：财务/ERP（金蝶·用友）数据清洗、凭证、对账、报表模板。
+- `assets/data-analysis-template.md`：数据分析与透视模板（目标分类、数据体检、透视聚合、统计指标、可视化、交付清单）。
+- `assets/ocr-prep-template.md`：PDF/图片 OCR 文字提取预处理与下游分流模板。
+- `assets/contract-review-template.md`：合同审查模板（采购/法务/财务视角、风险检查清单、免责声明）。
+- `assets/invoice-ocr-template.md`：发票 OCR 识别与入账模板（结构化字段、校验、凭证草稿、免责声明）。
+- `references/best-practices.md`：10 个最佳实践 + 20+ 避坑指南（反模式 FAQ），含四引擎识别、自动重试、硬件自适应、文件大小限制等工程稳定性经验。
+- `references/capability-list.md`：18 场景能力边界清单，快速查阅"能做什么、不能做什么、输入/输出类型、免责声明"。
+- `references/examples.md`：6 个典型场景完整输入/输出示例，照着模仿即可。
+- `references/faq.md`：15+ 个高频常见问题解答，覆盖无依赖、连接器未授权、输出不满意、文件格式不支持、与单一 skill 区别等，遇到卡住直接查。
+- `assets/audio-asr-guide.md`：会议录音转文字四级降级引导模板（粘贴文字稿 / 腾讯会议 tmeet / 语音转文字 skill / 本机 faster-whisper 实测安装与调用指引），及无依赖时的标准提示话术。

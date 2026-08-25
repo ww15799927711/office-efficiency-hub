@@ -1,7 +1,3 @@
-> **模板语言 / Template language**：本模板默认中文。当用户以英文（或其他语言）输入时，agent 应**把模板内容本地化为该语言**再输出，不强行用中文。
-> This template is Chinese by default. When the user writes in English (or another language), the agent should **localize the content to that language** before output — never force Chinese.
-> 占位符如 `[收件人]` `[事由]` 为通用结构，跨语言保持一致。/ Placeholders like `[收件人]` are structural and stay consistent across languages.
-
 # 典型场景输入/输出示例
 
 本文件提供 6 个高频场景的完整示例，照着输入即可得到对应输出。适合第一次使用「办公效率枢纽」时快速模仿。
@@ -212,26 +208,3 @@ B 总，
 - 示例中的输入越具体，输出越贴合你的业务。
 - 支持**一次串多个场景**，例如"整理这份会议纪要 + 提取行动项 + 写周报 + 排今日日程"。
 - 遇到敏感场景（财务、合同、发票），输出会自动附带免责声明。
-
-
----
-
-## English trigger examples / 英文触发样例
-
-You can drive every scenario in English. A few real inputs:
-
-- **Minutes → actions → email** (paste a Zoom/Teams transcript, then):
-  `Summarize this meeting, extract action items with owners and due dates, then draft a follow-up email to Lisa.`
-- **Weekly report from data** (upload `sales.xlsx`):
-  `Turn this weekly-report data into an Excel pivot table by region sales.`
-- **Contract review**:
-  `Review this procurement contract; flag legal and financial risks with suggested fixes.`
-- **Invoice OCR**:
-  `OCR this invoice and draft a booking voucher; flag any anomalies.`
-- **Plan my day**:
-  `Plan my day, check for schedule conflicts, and suggest a focus block.`
-- **Notion / Google Docs summarize**:
-  `Summarize this Notion page export and turn the project status into a follow-up card.`
-
-When the user writes in English, the agent replies in English and localizes template content accordingly.
-

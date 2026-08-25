@@ -1,7 +1,3 @@
-> **模板语言 / Template language**：本模板默认中文。当用户以英文（或其他语言）输入时，agent 应**把模板内容本地化为该语言**再输出，不强行用中文。
-> This template is Chinese by default. When the user writes in English (or another language), the agent should **localize the content to that language** before output — never force Chinese.
-> 占位符如 `[收件人]` `[事由]` 为通用结构，跨语言保持一致。/ Placeholders like `[收件人]` are structural and stay consistent across languages.
-
 # 发票 OCR 入账模板（§15）
 
 适用：采购/财务/业务人员拿到纸质发票、发票 PDF、发票截图，需要识别信息 → 结构化 → 核对 → 生成凭证草稿/入账。吸收自 WPS 全家桶"Excel 发票 OCR 入账"亮点，与 §13（OCR 预处理）+ §10（财务 ERP）衔接。
