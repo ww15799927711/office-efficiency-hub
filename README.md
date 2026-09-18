@@ -7,7 +7,7 @@
 
 一个**中英双语**的 AI 智能体技能，作为办公事务性工作的统一入口与调度中枢：会议纪要、报告、数据分析与看板、OCR、文档/PPT、合同起草与审查、邮件、知识库、财务对账、发票识别、翻译、招聘、日程排期、新媒体文案、流程图、OKR，以及可接入的办公软件。
 
-> **v1.2.0 · 25 scenarios 场景** — 本仓库已与 SkillHub 上的 `office-efficiency-hub` **内容对齐**（此前本仓库停留在 17 场景的精简双语版、版本号反而更高，造成倒挂；v1.2.0 起两条线内容一致）。
+> **v1.0.9 · 25 scenarios 场景** — 版本号与 SkillHub 官方发布线统一（v1.0.8 的后续版本）。此前本仓库自行使用 v1.1.0，实际内容却是 17 场景的精简双语版，与官方 25 场景内容不符；v1.0.9 起**内容与版本号均已对齐**。
 > Works standalone with **zero external dependencies**. Optional connectors/skills (Feishu, DingTalk, WeCom, Tencent Docs, WPS, Zoom, Teams, Notion, Google Workspace, Office 365…) and MCP servers upgrade the experience when available — never required. 核心功能**零依赖**即可运行；连接器与 MCP 仅在可用时增强体验，并非必需。
 
 * * *
